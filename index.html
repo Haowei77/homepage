@@ -1,10 +1,14 @@
+---
+layout: none
+title: 我的每日计划
+---
+
 <!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <title>{{ site.title }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- 可选的极简样式：保证在 Kindle 上也可读 -->
   <style>
     body { font-family: serif; margin: 1.2em; line-height: 1.6; }
     h1 { font-size: 1.4em; margin-bottom: 0.2em; }
@@ -16,8 +20,10 @@
   <h1>{{ site.title }}</h1>
   <div class="date">日期：{{ site.time | date: "%Y-%m-%d (%a)" }}</div>
   <hr>
-  <!-- 计划内容：来自独立文件 _includes/plan.md -->
-  {% include plan.md %}
+
+  {% capture m %}{% include plan.md %}{% endcapture %}
+  {{ m | markdownify }}
+
   <hr>
   <p style="font-size:0.9em;">（提示：只需编辑仓库中的 <code>_includes/plan.md</code> 即可更新今日计划）</p>
 </body>
