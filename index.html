@@ -27,6 +27,8 @@ title: 我的每日计划
     #pct { font-size: .9em; margin-top: .3em; display: inline-block; }
     /* 任务列表：让复选框和文本有点间距 */
     .tasklist li { margin: .2em 0; }
+    /* 任务列表去掉项目符号 */
+    .tasklist ul { list-style: none; padding-left: 0; }
     .tasklist input[type="checkbox"] { margin-right: .4em; }
   </style>
 </head>
@@ -51,55 +53,64 @@ title: 我的每日计划
   <p style="font-size:0.9em;">（提示：编辑仓库中的 <code>_includes/plan.md</code> 即可更新今日计划）</p>
 
   <!-- 极简 JS：把 [ ] / [x] 变成可勾选，并计算进度 -->
-  <script>
-    (function () {
-      var boxSel = 'input[type="checkbox"]';
+<script>
+  (function () {
+    function enhanceTasks() {
+      var root = document.getElementById('tasks');
+      if (!root) return;
 
-      function enhanceTasks() {
-        var root = document.getElementById('tasks');
-        if (!root) return;
+      // A. 先处理“已经被 Markdown 渲染出来的复选框”（通常是 disabled）
+      var existing = root.querySelectorAll('li input[type="checkbox"]');
+      for (var i = 0; i < existing.length; i++) {
+        var cb = existing[i];
+        cb.removeAttribute('disabled');          // 解禁
+        cb.addEventListener('change', updateProgress, false);
+      }
 
-        // 1) 把 Markdown 里的 "[ ] " / "[x] " 前缀转成可交互的复选框
-        var items = root.querySelectorAll('li');
-        for (var i = 0; i < items.length; i++) {
-          var li = items[i];
-          // 仅处理以 [ ] 或 [x]/[X] 开头的项
-          var txt = li.textContent || '';
-          var m = txt.match(/^\s*\[( |x|X)\]\s*/);
-          if (m) {
-            var checked = (m[1] === 'x' || m[1] === 'X');
-            var cb = document.createElement('input');
-            cb.type = 'checkbox';
-            cb.checked = checked;
+      // B. 再兜底：如果某些项还是以 "[ ] " / "[x] " 文本出现，就把它们替换成可交互复选框
+      var items = root.querySelectorAll('li');
+      for (var j = 0; j < items.length; j++) {
+        var li = items[j];
+        // 已经有复选框就跳过
+        if (li.querySelector('input[type="checkbox"]')) continue;
 
-            // 删除前缀文本，再插入复选框
-            li.firstChild.nodeType === 3 && (li.firstChild.nodeValue = li.firstChild.nodeValue.replace(/^\s*\[( |x|X)\]\s*/, ''));
-            li.insertBefore(cb, li.firstChild);
+        // 读取 li 的首个文本节点（可能包在 <p> 里）
+        var node = li.firstChild;
+        while (node && node.nodeType !== 3) node = node.firstChild;
 
-            cb.addEventListener('change', updateProgress, false);
-          }
+        var txt = node ? node.nodeValue : '';
+        var m = txt && txt.match(/^\s*\[( |x|X)\]\s*/);
+        if (m) {
+          var checked = (m[1] === 'x' || m[1] === 'X');
+          var cb2 = document.createElement('input');
+          cb2.type = 'checkbox';
+          cb2.checked = checked;
+          cb2.addEventListener('change', updateProgress, false);
+
+          // 去掉前缀标记后插入复选框
+          if (node) node.nodeValue = node.nodeValue.replace(/^\s*\[( |x|X)\]\s*/, '');
+          li.insertBefore(cb2, li.firstChild);
         }
-        updateProgress();
       }
 
-      function updateProgress() {
-        var root = document.getElementById('tasks');
-        var checks = root.querySelectorAll('li ' + boxSel);
-        var total = checks.length;
-        var done = 0;
-        for (var i = 0; i < total; i++) if (checks[i].checked) done++;
+      updateProgress();
+    }
 
-        var pct = total ? Math.floor(done * 100 / total) : 0;
-        var bar = document.getElementById('bar');
-        var pctText = document.getElementById('pct');
+    function updateProgress() {
+      var root = document.getElementById('tasks');
+      var checks = root.querySelectorAll('li input[type="checkbox"]');
+      var total = checks.length, done = 0;
+      for (var i = 0; i < total; i++) if (checks[i].checked) done++;
 
-        if (bar) bar.style.width = pct + '%';
-        if (pctText) pctText.textContent = pct + '%';
-      }
+      var pct = total ? Math.floor(done * 100 / total) : 0;
+      var bar = document.getElementById('bar');
+      var pctText = document.getElementById('pct');
+      if (bar) bar.style.width = pct + '%';
+      if (pctText) pctText.textContent = pct + '%';
+    }
 
-      // 初始化
-      enhanceTasks();
-    })();
-  </script>
+    enhanceTasks();
+  })();
+</script>
 </body>
 </html>
